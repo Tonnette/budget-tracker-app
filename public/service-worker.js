@@ -1,1 +1,30 @@
-const FILES_TO_CACHE=["/","/index.html","/style.css","/index.js","/db.js","favicon.ico"],CACHE_NAME="static-cache-v2",DATA_CACHE_NAME="data-cache-v1";self.addEventListener("install",function(a){a.waitUntil(caches.open(CACHE_NAME).then(a=>(console.log("Your files were pre-cached successfully!"),a.addAll(FILES_TO_CACHE)))),self.skipWaiting()}),self.addEventListener("activate",function(a){a.waitUntil(caches.keys().then(a=>Promise.all(a.map(a=>{if(a!==CACHE_NAME&&a!==DATA_CACHE_NAME)return console.log("Removing old cache data",a),caches.delete(a)})))),self.clients.claim()}),self.addEventListener("fetch",function(a){if(a.request.url.includes("/api/"))return void a.respondWith(caches.open(DATA_CACHE_NAME).then(b=>fetch(a.request).then(c=>(200===c.status&&b.put(a.request.url,c.clone()),c)).catch(()=>b.match(a.request))).catch(a=>console.log(a)))});
+const FILES_TO_CACHE=["/","/index.html","/style.css","/index.js","/db.js","favicon.ico"],
+​
+const CACHE_NAME = "static-cache-v1";
+
+self.addEventListener("install", function (event) {
+    console.log("service worker installing");
+    event.waitUntil(
+        caches.open(CACHE_NAME).then(cache => {
+            console.log("Your files were pre-cached successfully!");
+            return cache.addAll(FILES_TO_CACHE);
+        })
+    );
+​
+});
+​
+self.addEventListener("fetch", function (event) {
+    console.log("event: " + JSON.stringify(event));
+    event.respondWith(
+        fetch(event.request).catch(function () {
+            console.log("event.request: " + JSON.stringify(event.request));
+            return caches.match(event.request).then(function (response) {
+                if (response) {
+                    return response;
+                } else if (event.request.headers.get("accept").includes("text/html")) {
+                    return caches.match("/index.html");
+                }
+            });
+        })
+    );
+});
